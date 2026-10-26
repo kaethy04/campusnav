@@ -1,0 +1,23 @@
+{
+  "builds": [
+    {
+      "src": "artifacts/admin/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
+      "src": "artifacts/api-server/api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "artifacts/api-server/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "artifacts/admin/$1"
+    }
+  ]
+}
