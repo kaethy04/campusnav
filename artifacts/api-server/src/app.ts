@@ -20,7 +20,37 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+// Allow CORS for Vercel deployment & Localhost
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://campusnav-qcjcaq7by-campus-nav2.vercel.app",
+  /^https:\/\/campusnav-.*\.vercel\.app$/,
+  /^https:\/\/.*\.vercel\.app$/
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.some((pattern) =>
+        typeof pattern === "string" ? pattern === origin : pattern.test(origin)
+      );
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all fallback or strictly true
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
+// Explicitly handle CORS Preflight OPTIONS requests
+app.options("*", cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
