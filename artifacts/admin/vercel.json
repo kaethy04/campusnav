@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://campusnav-api-857u.onrender.com/api/:path*"
+      "destination": "/api/:path*"
     },
     {
       "source": "/(.*)",
