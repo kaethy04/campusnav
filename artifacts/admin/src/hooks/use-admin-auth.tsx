@@ -11,6 +11,8 @@ type AdminAuthContextValue = {
   updateProfile: (input: { email?: string; name?: string; password?: string }) => Promise<string | null>;
 };
 
+const API_BASE = import.meta.env.VITE_API_URL || "https://campusnav-api-857u.onrender.com";
+
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
@@ -21,7 +23,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/me", { credentials: "same-origin" })
+    fetch(`${API_BASE}/api/admin/me`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { username?: string; name?: string; role?: AdminAuthContextValue["role"]; campusName?: string | null } | null) => {
         setUsername(data?.username ?? null);
@@ -34,9 +36,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (nextUsername: string, password: string) => {
-    const response = await fetch("/api/admin/login", {
+    const response = await fetch(`${API_BASE}/api/admin/login`, {
       method: "POST",
-      credentials: "same-origin",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: nextUsername, password }),
     });
@@ -50,7 +52,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" });
+    await fetch(`${API_BASE}/api/admin/logout`, { method: "POST", credentials: "include" });
     setUsername(null);
     setName(null);
     setRole(null);
@@ -58,9 +60,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (input: { email?: string; name?: string; password?: string }) => {
-    const response = await fetch("/api/admin/settings", {
+    const response = await fetch(`${API_BASE}/api/admin/settings`, {
       method: "PUT",
-      credentials: "same-origin",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
