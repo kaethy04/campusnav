@@ -21,35 +21,28 @@ app.use(
   }),
 );
 
-// Allow CORS for Vercel deployment & Localhost
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://campusnav-qcjcaq7by-campus-nav2.vercel.app",
-  /^https:\/\/campusnav-.*\.vercel\.app$/,
-  /^https:\/\/.*\.vercel\.app$/
-];
-
+// Standard CORS Configuration
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or Postman)
       if (!origin) return callback(null, true);
-      const isAllowed = allowedOrigins.some((pattern) =>
-        typeof pattern === "string" ? pattern === origin : pattern.test(origin)
-      );
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Allow all fallback or strictly true
+      
+      // Allow localhost and any Vercel deployment
+      if (
+        origin.startsWith("http://localhost") ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
       }
+      
+      return callback(null, true); // Fallback to allow connection
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
-
-// Explicitly handle CORS Preflight OPTIONS requests
-app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
