@@ -30,11 +30,11 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Map",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ focused }) =>
             isIOS ? (
-              <SymbolView name="map" tintColor={color} size={24} />
+              <SymbolView name="map" tintColor={focused ? "#01274d" : "#fefdfa"} size={24} />
             ) : (
-              <Feather name="map" size={22} color={color} />
+              <Feather name="map" size={22} color={focused ? "#01274d" : "#fefdfa"} />
             ),
         }}
       />
@@ -42,11 +42,11 @@ function ClassicTabLayout() {
         name="search"
         options={{
           title: "Explore",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ focused }) =>
             isIOS ? (
-              <SymbolView name="magnifyingglass" tintColor={color} size={24} />
+              <SymbolView name="magnifyingglass" tintColor={focused ? "#01274d" : "#fefdfa"} size={24} />
             ) : (
-              <Feather name="search" size={22} color={color} />
+              <Feather name="search" size={22} color={focused ? "#01274d" : "#fefdfa"} />
             ),
         }}
       />

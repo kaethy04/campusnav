@@ -37,7 +37,12 @@ export default function SearchScreen() {
   const colors = useColors();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  const { buildings, loading: buildingsLoading } = useBuildings();
+  const {
+    buildings,
+    loading: buildingsLoading,
+    error: buildingsError,
+    refetch,
+  } = useBuildings();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<
     BuildingCategory | "all"
@@ -193,6 +198,23 @@ export default function SearchScreen() {
                 Loading buildings…
               </Text>
             </View>
+          ) : buildingsError && buildings.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="alert-circle" size={40} color={colors.destructive} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+                Could not load locations
+              </Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                {buildingsError}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void refetch()}
+                style={[styles.retryButton, { backgroundColor: colors.primary }]}
+              >
+                <Text style={styles.retryButtonText}>Try again</Text>
+              </Pressable>
+            </View>
           ) : (
             <View style={styles.empty}>
               <Feather name="search" size={40} color={colors.mutedForeground} />
@@ -304,5 +326,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
 });

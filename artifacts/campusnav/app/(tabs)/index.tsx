@@ -228,6 +228,7 @@ export default function MapScreen() {
   const {
     buildings,
     loading: buildingsLoading,
+    error: buildingsError,
     refetch,
   } = useBuildings();
 
@@ -545,8 +546,8 @@ export default function MapScreen() {
             <Overlay
               image={{ uri: selectedFloorPlan.imageUrl }}
               bounds={[
-                [selectedFloorPlan.bounds.north, selectedFloorPlan.bounds.west],
-                [selectedFloorPlan.bounds.south, selectedFloorPlan.bounds.east],
+                [selectedFloorPlan.bounds.north, selectedFloorPlan.bounds.east],
+                [selectedFloorPlan.bounds.south, selectedFloorPlan.bounds.west],
               ]}
               opacity={0.82}
             />
@@ -584,24 +585,37 @@ export default function MapScreen() {
               title={building.name}
               {...({ color: building.color } as any)}
               onPress={() => handleMarkerPress(building)}
-              tracksViewChanges={false}
+              onSelect={() => setSelectedBuilding(building)}
+              anchor={{ x: 0.14, y: 0.84 }}
             >
-              <View
-                style={[
-                  styles.markerContainer,
-                  selectedBuilding?.id === building.id && styles.markerSelected,
-                  navTarget?.id === building.id && styles.markerNav,
-                  { backgroundColor: building.color },
-                ]}
-              >
-                {navTarget?.id === building.id && (
-                  <Text style={styles.markerNavEmoji}>📍</Text>
-                )}
-                <Text style={styles.markerText}>{building.shortName}</Text>
+              <View style={styles.markerRow}>
+                <View style={styles.markerPinIcon}>
+                  <View
+                    style={[
+                      styles.markerPinTail,
+                      { borderTopColor: building.color },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.markerPinHead,
+                      { backgroundColor: building.color },
+                    ]}
+                  >
+                    <View style={styles.markerPinDot} />
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.markerContainer,
+                    { borderColor: building.color },
+                  ]}
+                >
+                  <Text style={styles.markerText} numberOfLines={1}>
+                    {building.shortName}
+                  </Text>
+                </View>
               </View>
-              <View
-                style={[styles.markerPin, { borderTopColor: building.color }]}
-              />
             </Marker>
           ))}
         </MapView>
@@ -613,6 +627,35 @@ export default function MapScreen() {
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.loadingText}>Loading buildings…</Text>
           </View>
+        </View>
+      )}
+
+      {!!buildingsError && (
+        <View
+          style={[
+            styles.buildingsError,
+            {
+              top: topPad + (isWeb ? 0 : 12) + 118,
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.buildingsErrorText}>
+            <Text style={[styles.buildingsErrorTitle, { color: colors.foreground }]}>
+              Could not refresh locations
+            </Text>
+            <Text style={[styles.buildingsErrorMessage, { color: colors.mutedForeground }]}>
+              {buildingsError}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void refetch()}
+            style={[styles.buildingsRetryButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.buildingsRetryText}>Retry</Text>
+          </Pressable>
         </View>
       )}
 
@@ -987,6 +1030,40 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     color: "#800000",
   },
+  buildingsError: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 45,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  buildingsErrorText: {
+    flex: 1,
+  },
+  buildingsErrorTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  buildingsErrorMessage: {
+    marginTop: 3,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  buildingsRetryButton: {
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  buildingsRetryText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
   map: {
     flex: 1,
   },
@@ -1277,41 +1354,60 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
   },
   markerContainer: {
-    paddingHorizontal: 10,
+    maxWidth: 180,
+    paddingHorizontal: 8,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 4,
+  },
+  markerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-  },
-  markerSelected: {
-    transform: [{ scale: 1.15 }],
-  },
-  markerNav: {
-    transform: [{ scale: 1.25 }],
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  markerNavEmoji: {
-    fontSize: 10,
+    gap: 4,
   },
   markerText: {
-    color: "#fff",
-    fontSize: 11,
+    color: "#800000",
+    fontSize: 10,
     fontFamily: "Inter_700Bold",
   },
-  markerPin: {
-    alignSelf: "center",
+  markerPinIcon: {
+    width: 30,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  markerPinHead: {
+    position: "absolute",
+    top: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  },
+  markerPinDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+  },
+  markerPinTail: {
+    position: "absolute",
+    top: 17,
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 6,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 12,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
   },

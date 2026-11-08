@@ -71,7 +71,7 @@ const mapped: Building[] = buildingData.map((b) => ({
       setBuildings(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
-      setBuildings([]);
+      setBuildings(_cache ?? []);
     } finally {
       setLoading(false);
     }
