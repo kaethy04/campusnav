@@ -728,6 +728,8 @@ export default function MapScreen() {
                 </View>
               )}
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Refresh map"
                 onPress={handleResetView}
                 style={({ pressed }) => [
                   styles.resetBtn,
@@ -739,6 +741,28 @@ export default function MapScreen() {
                 <Feather name="refresh-cw" size={15} color={colors.primary} />
               </Pressable>
               <ThemeToggle />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="App info"
+                onPress={() => router.push("/info")}
+                style={({ pressed }) => [
+                  styles.resetBtn,
+                  { backgroundColor: colors.primaryLight, opacity: pressed ? 0.72 : 1 },
+                ]}
+              >
+                <Feather name="info" size={15} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Feedback"
+                onPress={() => router.push("/feedback")}
+                style={({ pressed }) => [
+                  styles.resetBtn,
+                  { backgroundColor: colors.primaryLight, opacity: pressed ? 0.72 : 1 },
+                ]}
+              >
+                <Feather name="message-square" size={15} color={colors.primary} />
+              </Pressable>
             </>
           ) : (
             <>
@@ -869,10 +893,7 @@ export default function MapScreen() {
               },
             ]}
           >
-            <View style={styles.accountMenuActions}>
-              <ThemeToggle />
-              <Text style={[styles.accountMenuActionText, { color: colors.foreground }]}>Appearance</Text>
-            </View>
+            <ThemeToggle variant="menu" />
             <Pressable
               accessibilityRole="button"
               onPress={() => {

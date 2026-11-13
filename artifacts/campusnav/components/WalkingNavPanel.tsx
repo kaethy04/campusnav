@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Building } from "@/constants/buildings";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/hooks/useTheme";
 import { formatDistance, walkingMinutes } from "@/utils/distance";
 import type { WalkingRouteStatus } from "@/utils/walkingRoute";
 
@@ -26,9 +27,15 @@ interface WalkingNavPanelProps {
 }
 
 function WalkingFigure() {
+  const { mode } = useTheme();
+
   return (
     <Image
-      source={require("@/assets/images/walkinggif.gif")}
+      source={
+        mode === "dark"
+          ? require("@/assets/images/walkingwhite.gif")
+          : require("@/assets/images/walkingblack.gif")
+      }
       autoplay
       contentFit="contain"
       style={styles.walkingIcon}
