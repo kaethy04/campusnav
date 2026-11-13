@@ -10,7 +10,7 @@ import { getApiBaseUrl } from "@/utils/api";
 
 export default function FeedbackScreen() {
   const colors = useColors();
-  const { user } = useAuth();
+  const { sessionToken, signOut } = useAuth();
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,15 +25,16 @@ export default function FeedbackScreen() {
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
         body: JSON.stringify({
           message: trimmedMessage,
-          userEmail: user?.email,
-          username: user?.username,
-          userName: user?.name,
         }),
       });
       const data = await response.json().catch(() => null);
+      if (response.status === 401 && sessionToken) await signOut();
       if (!response.ok) throw new Error(data?.error || "Could not send feedback.");
       setMessage("");
       setSent(true);
@@ -49,7 +50,7 @@ export default function FeedbackScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           accessibilityLabel="Go back"
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.replace("/(tabs)/map")}
           style={[styles.headerButton, { backgroundColor: colors.primaryLight }]}
         >
           <Feather name="arrow-left" size={19} color={colors.primary} />
@@ -60,7 +61,7 @@ export default function FeedbackScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={[styles.heading, { color: colors.foreground }]}>Help us improve CampusNav</Text>
-        <Text style={[styles.helper, { color: colors.mutedForeground }]}>Report a problem or share an idea. Your account name will be included so the team can follow up.</Text>
+        <Text style={[styles.helper, { color: colors.mutedForeground }]}>Report a problem or share an idea to help us improve CampusNav.</Text>
         <TextInput
           accessibilityLabel="Your feedback"
           value={message}

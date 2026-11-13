@@ -27,7 +27,7 @@ function ClassicTabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="map"
         options={{
           title: "Map",
           tabBarIcon: ({ focused }) =>

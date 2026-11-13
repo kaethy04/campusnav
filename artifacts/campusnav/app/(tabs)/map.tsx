@@ -35,6 +35,7 @@ import { CTU_CAMPUSES, DEFAULT_CAMPUS, getCampusRegion, type CampusCategory, typ
 import { useLocation } from "@/hooks/useLocation";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserPlaces } from "@/hooks/useUserPlaces";
 import { useActiveUsers } from "@/hooks/useActiveUsers";
 import { useBuildings } from "@/hooks/useBuildings";
 import { getApiBaseUrl } from "@/utils/api";
@@ -206,7 +207,8 @@ function WebCampusMap({
 
 export default function MapScreen() {
   const colors = useColors();
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
+  const places = useUserPlaces();
   const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
   useActiveUsers(user?.username);
@@ -358,6 +360,7 @@ export default function MapScreen() {
 
   const handleNavigate = (building: Building) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    void places.recordRecentSearch(building.id);
     setNavTarget(building);
     setSelectedBuilding(null);
     if (!isWeb && location.coords) {
@@ -432,6 +435,7 @@ export default function MapScreen() {
 };
 
   const handleDirections = (building: Building) => {
+    void places.recordRecentSearch(building.id);
     if (Platform.OS === "web") {
       window.open(
         `https://www.google.com/maps/dir/?api=1&destination=${building.latitude},${building.longitude}`,
@@ -685,6 +689,15 @@ export default function MapScreen() {
         ]}
       >
         <View style={styles.headerLeft}>
+          <Pressable
+            accessibilityLabel="Back to welcome screen"
+            accessibilityRole="button"
+            accessibilityHint="Returns to the CampusNav welcome screen."
+            onPress={() => router.replace("/")}
+            style={[styles.headerBackButton, { backgroundColor: colors.primaryLight }]}
+          >
+            <Feather name="arrow-left" size={18} color={colors.primary} />
+          </Pressable>
           {isNavigating ? (
             <View style={[styles.logoMark, { backgroundColor: colors.primary }]}>
               <Feather name="navigation" size={14} color="#fff" />
@@ -726,13 +739,6 @@ export default function MapScreen() {
                 <Feather name="refresh-cw" size={15} color={colors.primary} />
               </Pressable>
               <ThemeToggle />
-              <Pressable
-                accessibilityLabel="Sign out"
-                onPress={signOut}
-                style={[styles.resetBtn, { backgroundColor: colors.primaryLight }]}
-              >
-                <Feather name="log-out" size={15} color={colors.primary} />
-              </Pressable>
             </>
           ) : (
             <>
@@ -749,7 +755,7 @@ export default function MapScreen() {
                 <Feather name="refresh-cw" size={15} color={colors.primary} />
               </Pressable>
               <Pressable
-                accessibilityLabel="Open account menu"
+                accessibilityLabel="Open menu"
                 onPress={() => setMenuOpen((open) => !open)}
                 style={[styles.resetBtn, { backgroundColor: colors.primaryLight }]}
               >
@@ -849,7 +855,7 @@ export default function MapScreen() {
       {menuOpen && isMobile && (
         <>
           <Pressable
-            accessibilityLabel="Close account menu"
+            accessibilityLabel="Close menu"
             onPress={() => setMenuOpen(false)}
             style={styles.menuBackdrop}
           />
@@ -863,18 +869,6 @@ export default function MapScreen() {
               },
             ]}
           >
-            <View style={styles.accountMenuUser}>
-              <View style={[styles.accountAvatar, { backgroundColor: colors.primaryLight }]}>
-                <Feather name="user" size={17} color={colors.primary} />
-              </View>
-              <View style={styles.accountMenuUserText}>
-                <Text style={[styles.accountMenuUsername, { color: colors.foreground }]} numberOfLines={1}>
-                  @{user?.username || "user"}
-                </Text>
-                <Text style={[styles.accountMenuLabel, { color: colors.mutedForeground }]}>Account</Text>
-              </View>
-            </View>
-            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
             <View style={styles.accountMenuActions}>
               <ThemeToggle />
               <Text style={[styles.accountMenuActionText, { color: colors.foreground }]}>Appearance</Text>
@@ -904,19 +898,6 @@ export default function MapScreen() {
                 <Feather name="message-square" size={16} color={colors.primary} />
               </View>
               <Text style={[styles.accountMenuActionText, { color: colors.foreground }]}>Send feedback</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Sign out"
-              onPress={() => {
-                setMenuOpen(false);
-                signOut();
-              }}
-              style={({ pressed }) => [styles.accountMenuActions, pressed && { opacity: 0.65 }]}
-            >
-              <View style={[styles.menuIconButton, { backgroundColor: colors.primaryLight }]}>
-                <Feather name="log-out" size={16} color={colors.primary} />
-              </View>
-              <Text style={[styles.accountMenuActionText, { color: colors.foreground }]}>Log out</Text>
             </Pressable>
           </View>
         </>
@@ -982,6 +963,9 @@ export default function MapScreen() {
           onDismiss={() => setSelectedBuilding(null)}
           onNavigate={handleNavigate}
           onDirections={handleDirections}
+          isSaved={selectedBuilding ? places.savedPlaces.includes(selectedBuilding.id) : false}
+          onToggleSaved={user && selectedBuilding ? () => void places.toggleSavedPlace(selectedBuilding.id) : undefined}
+          placesError={places.error}
         />
       )}
 
@@ -1148,6 +1132,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  headerBackButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerRight: {
     flexDirection: "row",

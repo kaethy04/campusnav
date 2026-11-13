@@ -23,6 +23,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/hooks/useAuth";
 import { useBuildings } from "@/hooks/useBuildings";
+import { useUserPlaces } from "@/hooks/useUserPlaces";
 
 const CATEGORIES: Array<{ key: BuildingCategory | "all"; label: string }> = [
   { key: "all", label: "All" },
@@ -35,7 +36,8 @@ const CATEGORIES: Array<{ key: BuildingCategory | "all"; label: string }> = [
 
 export default function SearchScreen() {
   const colors = useColors();
-  const { signOut } = useAuth();
+  const { user } = useAuth();
+  const places = useUserPlaces();
   const insets = useSafeAreaInsets();
   const {
     buildings,
@@ -49,6 +51,7 @@ export default function SearchScreen() {
   >("all");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const isSearchingTba = query.trim().toLowerCase() === "tba";
 
   const filtered = useMemo(() => {
     let list = buildings;
@@ -67,6 +70,15 @@ export default function SearchScreen() {
     }
     return list;
   }, [buildings, query, activeCategory]);
+  const savedBuildings = useMemo(
+    () => places.savedPlaces.map((id) => buildings.find((building) => building.id === id)).filter((building) => building !== undefined),
+    [buildings, places.savedPlaces],
+  );
+  const recentBuildings = useMemo(
+    () => places.recentSearches.map((id) => buildings.find((building) => building.id === id)).filter((building) => building !== undefined),
+    [buildings, places.recentSearches],
+  );
+  const showPersonalPlaces = !!user && !query.trim() && activeCategory === "all";
 
   return (
   <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -96,15 +108,13 @@ export default function SearchScreen() {
               {buildings.length} locations
             </Text>
             <ThemeToggle />
-            <Pressable
-              accessibilityLabel="Sign out"
-              onPress={signOut}
-              style={[styles.logoutButton, { backgroundColor: colors.primaryLight }]}
-            >
-              <Feather name="log-out" size={15} color={colors.primary} />
-            </Pressable>
           </View>
         </View>
+        {places.error && (
+          <Text style={[styles.placesError, { color: colors.destructive }]} accessibilityRole="alert">
+            {places.error}
+          </Text>
+        )}
 
         {/* Search bar */}
         <View
@@ -132,7 +142,6 @@ export default function SearchScreen() {
             </Pressable>
           )}
         </View>
-
         {/* Category chips */}
         <FlatList
           horizontal
@@ -175,6 +184,11 @@ export default function SearchScreen() {
             );
           }}
         />
+        {isSearchingTba && (
+          <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>
+            TBA means “To Be Announced.”
+          </Text>
+        )}
       </View>
 
       {/* Results */}
@@ -188,7 +202,54 @@ export default function SearchScreen() {
               Platform.OS === "web" ? 34 + 84 : insets.bottom + 84,
           },
         ]}
-        renderItem={({ item }) => <BuildingListItem building={item} />}
+        ListHeaderComponent={showPersonalPlaces ? (
+          <View>
+            <View style={styles.personalSection}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Saved places</Text>
+              {savedBuildings.length > 0 ? (
+                savedBuildings.map((building) => (
+                  <BuildingListItem
+                    key={`saved-${building.id}`}
+                    building={building}
+                    isSaved
+                    onToggleSaved={() => void places.toggleSavedPlace(building.id)}
+                  />
+                ))
+              ) : (
+                <Text style={[styles.personalEmpty, { color: colors.mutedForeground }]}>
+                  Star a building to keep it handy here.
+                </Text>
+              )}
+            </View>
+            <View style={styles.personalSection}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Recent searches</Text>
+              {recentBuildings.length > 0 ? (
+                recentBuildings.map((building) => (
+                  <BuildingListItem
+                    key={`recent-${building.id}`}
+                    building={building}
+                    isSaved={places.savedPlaces.includes(building.id)}
+                    onToggleSaved={() => void places.toggleSavedPlace(building.id)}
+                  />
+                ))
+              ) : (
+                <Text style={[styles.personalEmpty, { color: colors.mutedForeground }]}>
+                  Places you open or navigate to will appear here.
+                </Text>
+              )}
+            </View>
+            {places.loading && savedBuildings.length === 0 && recentBuildings.length === 0 && (
+              <ActivityIndicator size="small" color={colors.primary} style={styles.placesLoading} />
+            )}
+          </View>
+        ) : undefined}
+        renderItem={({ item }) => (
+          <BuildingListItem
+            building={item}
+            isSaved={places.savedPlaces.includes(item.id)}
+            onToggleSaved={user ? () => void places.toggleSavedPlace(item.id) : undefined}
+          />
+        )}
         scrollEnabled={!!filtered.length}
         ListEmptyComponent={() =>
           buildingsLoading ? (
@@ -274,6 +335,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
   },
+  placesError: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    marginBottom: 8,
+  },
+  personalSection: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  personalEmpty: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 8,
+  },
+  placesLoading: {
+    marginVertical: 12,
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -288,6 +371,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: "Inter_400Regular",
+  },
+  searchHint: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    marginTop: -4,
+    marginBottom: 8,
   },
   chipList: {
     paddingBottom: 8,

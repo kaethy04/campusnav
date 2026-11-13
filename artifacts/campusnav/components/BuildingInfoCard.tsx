@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
@@ -20,6 +20,9 @@ interface BuildingInfoCardProps {
   onDismiss: () => void;
   onNavigate?: (building: Building) => void;
   onDirections?: (building: Building) => void;
+  isSaved?: boolean;
+  onToggleSaved?: () => void;
+  placesError?: string | null;
 }
 
 export function BuildingInfoCard({
@@ -27,6 +30,9 @@ export function BuildingInfoCard({
   onDismiss,
   onNavigate,
   onDirections,
+  isSaved = false,
+  onToggleSaved,
+  placesError,
 }: BuildingInfoCardProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -81,15 +87,31 @@ export function BuildingInfoCard({
             {getCategoryLabel(building.category)}
           </Text>
         </View>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onDismiss();
-          }}
-          hitSlop={12}
-        >
-          <Feather name="x" size={18} color={colors.mutedForeground} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          {onToggleSaved && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isSaved ? `Remove ${building.name} from saved places` : `Save ${building.name}`}
+              accessibilityState={{ selected: isSaved }}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onToggleSaved();
+              }}
+              hitSlop={10}
+            >
+              <FontAwesome name={isSaved ? "star" : "star-o"} size={18} color={isSaved ? colors.primary : colors.mutedForeground} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onDismiss();
+            }}
+            hitSlop={12}
+          >
+            <Feather name="x" size={18} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
       </View>
 
       <Text
@@ -104,6 +126,11 @@ export function BuildingInfoCard({
       >
         {building.description}
       </Text>
+      {placesError && (
+        <Text style={[styles.placesError, { color: colors.destructive }]} accessibilityRole="alert">
+          {placesError}
+        </Text>
+      )}
 
       <View style={styles.meta}>
         <View style={styles.metaItem}>
@@ -196,6 +223,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+  },
+  placesError: {
+    fontSize: 12,
+    marginBottom: 10,
   },
   categoryBadge: {
     paddingHorizontal: 10,

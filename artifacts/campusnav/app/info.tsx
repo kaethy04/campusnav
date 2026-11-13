@@ -43,7 +43,7 @@ export default function AppInfoScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable
           accessibilityLabel="Go back"
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.replace("/(tabs)/map")}
           style={[styles.headerButton, { backgroundColor: colors.primaryLight }]}
         >
           <Feather name="arrow-left" size={19} color={colors.primary} />

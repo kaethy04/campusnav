@@ -9,14 +9,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import LoginScreen from "@/app/login";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { useColors } from "@/hooks/useColors";
+import { AuthProvider } from "@/hooks/useAuth";
+import { UserPlacesProvider } from "@/hooks/useUserPlaces";
 import { ThemeProvider } from "@/hooks/useTheme";
 
 SplashScreen.preventAutoHideAsync();
@@ -24,21 +22,9 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const { user, isGuest, loading } = useAuth();
-  const colors = useColors();
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!user && !isGuest) return <LoginScreen />;
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="info" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="feedback" options={{ headerShown: false, animation: "slide_from_right" }} />
@@ -75,11 +61,13 @@ export default function RootLayout() {
       <ThemeProvider>
         <ErrorBoundary>
           <AuthProvider>
-            <QueryClientProvider client={queryClient}>
-              <GestureHandlerRootView>
-                  <RootLayoutNav />
-              </GestureHandlerRootView>
-            </QueryClientProvider>
+            <UserPlacesProvider>
+              <QueryClientProvider client={queryClient}>
+                <GestureHandlerRootView>
+                    <RootLayoutNav />
+                </GestureHandlerRootView>
+              </QueryClientProvider>
+            </UserPlacesProvider>
           </AuthProvider>
         </ErrorBoundary>
       </ThemeProvider>

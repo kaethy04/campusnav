@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireSuperAdmin } from "../middlewares/admin-auth.js";
+import { optionalUser } from "../middlewares/user-auth.js";
 import { supabase } from "../lib/supabase.js";
 
 const router = Router();
@@ -151,17 +152,32 @@ router.delete("/admin/app-updates/:id", requireSuperAdmin, async (req, res) => {
   }
 });
 
-router.post("/feedback", async (req, res) => {
+router.post("/feedback", optionalUser, async (req, res) => {
   const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
-  const userEmail = typeof req.body?.userEmail === "string" ? req.body.userEmail.trim().slice(0, 254) : null;
-  const username = typeof req.body?.username === "string" ? req.body.username.trim().slice(0, 80) : null;
-  const userName = typeof req.body?.userName === "string" ? req.body.userName.trim().slice(0, 120) : null;
   if (message.length < 5 || message.length > 4000) {
     res.status(400).json({ error: "Feedback must be between 5 and 4000 characters." });
     return;
   }
 
   try {
+    const userEmail = req.userEmail ?? null;
+    let username: string | null = null;
+    let userName: string | null = null;
+    if (userEmail) {
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("username, name")
+        .eq("email", userEmail)
+        .maybeSingle();
+      if (userError) throw userError;
+      if (!user) {
+        res.status(401).json({ error: "Your account session is no longer valid. Please sign in again." });
+        return;
+      }
+      username = user.username;
+      userName = user.name;
+    }
+
     const { data, error } = await supabase.from("app_feedback").insert({
       message,
       user_email: userEmail,

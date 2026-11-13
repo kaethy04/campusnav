@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React from "react";
@@ -10,9 +10,11 @@ import { useColors } from "@/hooks/useColors";
 interface BuildingListItemProps {
   building: Building;
   onPress?: () => void;
+  isSaved?: boolean;
+  onToggleSaved?: () => void;
 }
 
-export function BuildingListItem({ building, onPress }: BuildingListItemProps) {
+export function BuildingListItem({ building, onPress, isSaved = false, onToggleSaved }: BuildingListItemProps) {
   const colors = useColors();
   const categoryColor = getCategoryColor(building.category);
 
@@ -26,47 +28,60 @@ export function BuildingListItem({ building, onPress }: BuildingListItemProps) {
   };
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.container,
         {
-          backgroundColor: pressed ? colors.secondary : colors.card,
+          backgroundColor: colors.card,
           borderColor: colors.border,
         },
       ]}
     >
-      <View
-        style={[
-          styles.iconBox,
-          { backgroundColor: categoryColor + "18" },
-        ]}
-      >
-        <View style={[styles.dot, { backgroundColor: categoryColor }]} />
-      </View>
-
-      <View style={styles.content}>
-        <Text
-          style={[styles.name, { color: colors.foreground }]}
-          numberOfLines={1}
+      <Pressable onPress={handlePress} style={styles.main}>
+        <View
+          style={[
+            styles.iconBox,
+            { backgroundColor: categoryColor + "18" },
+          ]}
         >
-          {building.name}
-        </Text>
-        <View style={styles.meta}>
-          <Text
-            style={[styles.category, { color: categoryColor }]}
-          >
-            {getCategoryLabel(building.category)}
-          </Text>
-          <Text style={[styles.dot2, { color: colors.mutedForeground }]}>·</Text>
-          <Text style={[styles.floors, { color: colors.mutedForeground }]}>
-            {building.floors}F · {building.rooms.length} rooms
-          </Text>
+          <View style={[styles.dot, { backgroundColor: categoryColor }]} />
         </View>
-      </View>
 
-      <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-    </Pressable>
+        <View style={styles.content}>
+          <Text
+            style={[styles.name, { color: colors.foreground }]}
+            numberOfLines={1}
+          >
+            {building.name}
+          </Text>
+          <View style={styles.meta}>
+            <Text
+              style={[styles.category, { color: categoryColor }]}
+            >
+              {getCategoryLabel(building.category)}
+            </Text>
+            <Text style={[styles.dot2, { color: colors.mutedForeground }]}>·</Text>
+            <Text style={[styles.floors, { color: colors.mutedForeground }]}>
+              {building.floors}F · {building.rooms.length} rooms
+            </Text>
+          </View>
+        </View>
+
+        {!onToggleSaved && <Feather name="chevron-right" size={18} color={colors.mutedForeground} />}
+      </Pressable>
+      {onToggleSaved && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isSaved ? `Remove ${building.name} from saved places` : `Save ${building.name}`}
+          accessibilityState={{ selected: isSaved }}
+          onPress={onToggleSaved}
+          hitSlop={8}
+          style={styles.favoriteButton}
+        >
+          <FontAwesome name={isSaved ? "star" : "star-o"} size={19} color={isSaved ? colors.primary : colors.mutedForeground} />
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -74,11 +89,20 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 12,
     marginBottom: 8,
+  },
+  main: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+  },
+  favoriteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
   },
   iconBox: {
     width: 44,

@@ -28,16 +28,52 @@ create table if not exists public.users (
   password_hash text,
   password_salt text,
   password_reset_code_hash text,
-  password_reset_expires_at timestamptz
+  password_reset_expires_at timestamptz,
+  email_verified_at timestamptz,
+  email_verification_code_hash text,
+  email_verification_expires_at timestamptz,
+  email_verification_sent_at timestamptz,
+  email_verification_attempts integer not null default 0
 );
 
 alter table public.users
   add column if not exists password_hash text,
   add column if not exists password_salt text,
   add column if not exists password_reset_code_hash text,
-  add column if not exists password_reset_expires_at timestamptz;
+  add column if not exists password_reset_expires_at timestamptz,
+  add column if not exists email_verified_at timestamptz,
+  add column if not exists email_verification_code_hash text,
+  add column if not exists email_verification_expires_at timestamptz,
+  add column if not exists email_verification_sent_at timestamptz,
+  add column if not exists email_verification_attempts integer not null default 0;
 
 create unique index if not exists users_username_unique_idx on public.users (lower(username));
+
+create table if not exists public.user_sessions (
+  token_hash text primary key,
+  user_email text not null references public.users(email) on delete cascade,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists user_sessions_user_email_idx on public.user_sessions (user_email);
+
+create table if not exists public.user_saved_places (
+  user_email text not null references public.users(email) on delete cascade,
+  building_slug text not null references public.buildings(slug) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_email, building_slug)
+);
+
+create table if not exists public.user_recent_searches (
+  user_email text not null references public.users(email) on delete cascade,
+  building_slug text not null references public.buildings(slug) on delete cascade,
+  last_visited_at timestamptz not null default now(),
+  primary key (user_email, building_slug)
+);
+
+create index if not exists user_recent_searches_user_email_idx
+  on public.user_recent_searches (user_email, last_visited_at desc);
 
 create table if not exists public.admin_settings (
   id smallint primary key default 1 check (id = 1),
@@ -133,6 +169,9 @@ on conflict (email) do nothing;
 
 alter table public.buildings enable row level security;
 alter table public.users enable row level security;
+alter table public.user_sessions enable row level security;
+alter table public.user_saved_places enable row level security;
+alter table public.user_recent_searches enable row level security;
 alter table public.admin_settings enable row level security;
 alter table public.admin_accounts enable row level security;
 alter table public.campus_floor_plans enable row level security;
@@ -140,7 +179,7 @@ alter table public.floor_legend_colors enable row level security;
 alter table public.app_updates enable row level security;
 alter table public.app_feedback enable row level security;
 
-grant all on table public.buildings, public.users, public.admin_settings, public.admin_accounts, public.campus_floor_plans, public.floor_legend_colors, public.app_updates, public.app_feedback to service_role;
+grant all on table public.buildings, public.users, public.user_sessions, public.user_saved_places, public.user_recent_searches, public.admin_settings, public.admin_accounts, public.campus_floor_plans, public.floor_legend_colors, public.app_updates, public.app_feedback to service_role;
 grant usage, select on all sequences in schema public to service_role;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
@@ -22,12 +22,16 @@ import {
   getCategoryLabel,
 } from "@/constants/buildings";
 import { useColors } from "@/hooks/useColors";
+import { useAuth } from "@/hooks/useAuth";
 import { useBuildings } from "@/hooks/useBuildings";
+import { useUserPlaces } from "@/hooks/useUserPlaces";
 
 export default function BuildingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const places = useUserPlaces();
   const { buildings } = useBuildings();
   const [viewingPhotoIndex, setViewingPhotoIndex] = React.useState<number | null>(null);
   const zoomScale = useSharedValue(1);
@@ -44,6 +48,10 @@ export default function BuildingDetailScreen() {
     });
 
   const building = buildings.find((b) => b.id === (id ?? ""));
+
+  React.useEffect(() => {
+    if (building && user) void places.recordRecentSearch(building.id);
+  }, [building?.id, places.recordRecentSearch, user]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -63,7 +71,7 @@ export default function BuildingDetailScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/");
+      router.replace("/(tabs)/map");
     }
   };
 
@@ -116,16 +124,34 @@ export default function BuildingDetailScreen() {
           { backgroundColor: building.color, paddingTop: topPad + 12 },
         ]}
       >
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            handleGoBack();
-          }}
-          style={[styles.heroBack, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-          hitSlop={8}
-        >
-          <Feather name="arrow-left" size={20} color="#fff" />
-        </Pressable>
+        <View style={styles.heroActions}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              handleGoBack();
+            }}
+            style={[styles.heroBack, { backgroundColor: "rgba(255,255,255,0.2)" }]}
+            hitSlop={8}
+          >
+            <Feather name="arrow-left" size={20} color="#fff" />
+          </Pressable>
+          {user && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={places.savedPlaces.includes(building.id) ? `Remove ${building.name} from saved places` : `Save ${building.name}`}
+              accessibilityState={{ selected: places.savedPlaces.includes(building.id) }}
+              onPress={() => void places.toggleSavedPlace(building.id)}
+              style={[styles.heroFavorite, { backgroundColor: "rgba(255,255,255,0.2)" }]}
+              hitSlop={8}
+            >
+              <FontAwesome
+                name={places.savedPlaces.includes(building.id) ? "star" : "star-o"}
+                size={18}
+                color="#fff"
+              />
+            </Pressable>
+          )}
+        </View>
 
         <View style={styles.heroContent}>
           <View
@@ -164,6 +190,11 @@ export default function BuildingDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {user && places.error && (
+          <Text style={[styles.placesError, { color: colors.destructive }]} accessibilityRole="alert">
+            {places.error}
+          </Text>
+        )}
         {/* About */}
         <View
           style={[
@@ -412,7 +443,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  heroActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
+  },
+  heroFavorite: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placesError: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    marginBottom: 12,
   },
   heroContent: {
     gap: 8,
