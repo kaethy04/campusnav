@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, ChevronRight, MapPin, ShieldCheck, Users } from "lucide-react";
+import { Building2, ChevronRight, MapPin, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useListBuildings, useGetBuildingStats } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -114,14 +114,6 @@ type CampusAdmin = {
   isActive: boolean;
 };
 
-type CampusUser = {
-  id: string;
-  email: string;
-  username: string;
-  name: string;
-  lastLoginAt: string | null;
-};
-
 function SuperAdminDashboard({
   buildings,
   buildingsLoading,
@@ -130,7 +122,6 @@ function SuperAdminDashboard({
   buildingsLoading: boolean;
 }) {
   const [admins, setAdmins] = useState<CampusAdmin[]>([]);
-  const [users, setUsers] = useState<CampusUser[]>([]);
   const [systemLoading, setSystemLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,16 +132,11 @@ function SuperAdminDashboard({
       setSystemLoading(true);
       setError(null);
       try {
-        const [adminsResponse, usersResponse] = await Promise.all([
-          fetch("/api/admin/accounts", { credentials: "same-origin" }),
-          fetch("/api/users", { credentials: "same-origin" }),
-        ]);
-        const [adminsData, usersData] = await Promise.all([adminsResponse.json(), usersResponse.json()]);
+        const adminsResponse = await fetch("/api/admin/accounts", { credentials: "same-origin" });
+        const adminsData = await adminsResponse.json();
         if (!adminsResponse.ok) throw new Error(adminsData?.error || "Could not load campus admins.");
-        if (!usersResponse.ok) throw new Error(usersData?.error || "Could not load campus users.");
         if (!cancelled) {
           setAdmins(adminsData);
-          setUsers(usersData);
         }
       } catch (reason) {
         if (!cancelled) setError(reason instanceof Error ? reason.message : "Could not load system overview.");
@@ -175,21 +161,19 @@ function SuperAdminDashboard({
   const campusesWithAdmins = campusRows.filter((campus) => campus.activeAdmins > 0).length;
   const activeAdmins = admins.filter((admin) => admin.isActive).length;
   const loading = systemLoading || buildingsLoading;
-  const recentUsers = users.slice(0, 5);
 
   return (
     <div className="space-y-5 p-4 sm:space-y-6 sm:p-6">
       <header>
         <h1 className="text-xl font-bold text-sky-600/90 sm:text-2xl">System Dashboard</h1>
-        <p className="mt-0.5 text-sm text-sky-600/70">Systemwide campus coverage, administrator access, and user activity.</p>
+        <p className="mt-0.5 text-sm text-sky-600/70">Systemwide campus coverage, administrator access, and buildings.</p>
       </header>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
-      <section aria-label="System totals" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="System totals" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryCard label="Campuses with active admins" value={loading ? "-" : `${campusesWithAdmins} / ${ADMIN_CAMPUSES.length}`} detail="Coverage across CTU campuses" icon={MapPin} />
         <SummaryCard label="Campus administrators" value={loading ? "-" : admins.length} detail={`${activeAdmins} active · ${admins.length - activeAdmins} blocked`} icon={ShieldCheck} />
-        <SummaryCard label="Registered users" value={loading ? "-" : users.length} detail="CampusNav accounts" icon={Users} />
         <SummaryCard label="Buildings" value={loading ? "-" : buildings.length} detail="Across all campuses" icon={Building2} />
       </section>
 
@@ -234,49 +218,14 @@ function SuperAdminDashboard({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.6fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent user activity</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {systemLoading ? (
-              <p className="p-6 text-sm text-muted-foreground">Loading user activity...</p>
-            ) : recentUsers.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground">No users have signed in yet.</p>
-            ) : (
-              <div className="divide-y divide-border">
-                {recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between gap-4 px-5 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{user.name || user.username}</p>
-                      <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                    <time className="shrink-0 text-right text-xs text-muted-foreground">
-                      {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "No sign-in yet"}
-                    </time>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="border-t border-border px-5 py-3">
-              <Link href="/users" className="inline-flex items-center gap-1 text-sm text-sky-900/100 hover:underline">
-                View all users <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Quick access</CardTitle></CardHeader>
-          <CardContent className="flex flex-col items-start gap-2">
-            <Link href="/" className="text-sm text-sky-900/90 hover:underline">Campus admin accounts</Link>
-            <Link href="/users" className="text-sm text-sky-900/90 hover:underline">Registered users</Link>
-            <Link href="/floor-plans" className="text-sm text-sky-900/90 hover:underline">Campus floor plans</Link>
-            <Link href="/settings" className="text-sm text-sky-900/90 hover:underline">System settings</Link>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Quick access</CardTitle></CardHeader>
+        <CardContent className="flex flex-col items-start gap-2">
+          <Link href="/" className="text-sm text-sky-900/90 hover:underline">Campus admin accounts</Link>
+          <Link href="/floor-plans" className="text-sm text-sky-900/90 hover:underline">Campus floor plans</Link>
+          <Link href="/settings" className="text-sm text-sky-900/90 hover:underline">System settings</Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

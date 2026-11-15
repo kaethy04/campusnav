@@ -90,23 +90,6 @@ if (buildingRows.length) {
   if (error) throw new Error(`Could not migrate buildings: ${error.message}`);
 }
 
-const userSnapshot = await firestore.collection("users").get();
-const userRows = userSnapshot.docs.map((doc) => {
-  const source = doc.data();
-  return {
-    email: source.email,
-    username: source.username,
-    name: source.name || source.username,
-    picture: source.picture || null,
-    last_login_at: toIso(source.lastLoginAt),
-  };
-}).filter((user) => user.email && user.username);
-
-if (userRows.length) {
-  const { error } = await supabase.from("users").upsert(userRows, { onConflict: "email" });
-  if (error) throw new Error(`Could not migrate users: ${error.message}`);
-}
-
 const adminDoc = await firestore.collection("settings").doc("admin").get();
 const adminSnapshot = adminDoc.exists ? adminDoc.data() : null;
 if (adminSnapshot) {
@@ -123,4 +106,4 @@ if (adminSnapshot) {
 const { error: sequenceError } = await supabase.rpc("sync_building_id_sequence");
 if (sequenceError) throw new Error(`Could not sync building ID sequence: ${sequenceError.message}`);
 
-console.log(`Migrated ${buildingRows.length} buildings, ${userRows.length} users, ${buildingRows.reduce((sum, row) => sum + row.images.length, 0)} building photos, and ${adminSnapshot ? 1 : 0} admin account.`);
+console.log(`Migrated ${buildingRows.length} buildings, ${buildingRows.reduce((sum, row) => sum + row.images.length, 0)} building photos, and ${adminSnapshot ? 1 : 0} admin account.`);

@@ -21,7 +21,6 @@ import {
   getCategoryColor,
 } from "@/constants/buildings";
 import { useColors } from "@/hooks/useColors";
-import { useAuth } from "@/hooks/useAuth";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useUserPlaces } from "@/hooks/useUserPlaces";
 
@@ -36,7 +35,6 @@ const CATEGORIES: Array<{ key: BuildingCategory | "all"; label: string }> = [
 
 export default function SearchScreen() {
   const colors = useColors();
-  const { user } = useAuth();
   const places = useUserPlaces();
   const insets = useSafeAreaInsets();
   const {
@@ -78,7 +76,7 @@ export default function SearchScreen() {
     () => places.recentSearches.map((id) => buildings.find((building) => building.id === id)).filter((building) => building !== undefined),
     [buildings, places.recentSearches],
   );
-  const showPersonalPlaces = !!user && !query.trim() && activeCategory === "all";
+  const showPersonalPlaces = !query.trim() && activeCategory === "all";
 
   return (
   <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -247,7 +245,7 @@ export default function SearchScreen() {
           <BuildingListItem
             building={item}
             isSaved={places.savedPlaces.includes(item.id)}
-            onToggleSaved={user ? () => void places.toggleSavedPlace(item.id) : undefined}
+            onToggleSaved={() => void places.toggleSavedPlace(item.id)}
           />
         )}
         scrollEnabled={!!filtered.length}

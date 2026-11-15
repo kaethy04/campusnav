@@ -1,14 +1,5 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import { getApiBaseUrl } from "@/utils/api";
-import { useAuth } from "@/hooks/useAuth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 interface UserPlacesContextValue {
   savedPlaces: string[];
@@ -21,107 +12,103 @@ interface UserPlacesContextValue {
 }
 
 const UserPlacesContext = createContext<UserPlacesContextValue | null>(null);
+const STORAGE_KEY = "campusnav-places";
+const RECENT_SEARCH_LIMIT = 10;
+
+type PlacesData = {
+  savedPlaces: string[];
+  recentSearches: string[];
+};
+
+const EMPTY_PLACES: PlacesData = { savedPlaces: [], recentSearches: [] };
 
 function errorMessage(reason: unknown) {
-  return reason instanceof Error ? reason.message : "Could not update your saved places.";
+  return reason instanceof Error ? reason.message : "Could not update saved places on this device.";
 }
 
 export function UserPlacesProvider({ children }: { children: React.ReactNode }) {
-  const { user, sessionToken, signOut } = useAuth();
-  const [savedPlaces, setSavedPlaces] = useState<string[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [places, setPlaces] = useState<PlacesData>(EMPTY_PLACES);
+  const placesRef = useRef(EMPTY_PLACES);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const request = useCallback(async (path: string, init?: RequestInit) => {
-    if (!sessionToken) throw new Error("Sign in to sync your places.");
-    const response = await fetch(`${getApiBaseUrl()}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionToken}`,
-      },
-    });
-    const data = await response.json().catch(() => null);
-    if (response.status === 401) {
-      await signOut();
-      throw new Error(data?.error || "Your session expired. Please sign in again.");
-    }
-    if (!response.ok) throw new Error(data?.error || "Could not update your saved places.");
-    return data;
-  }, [sessionToken, signOut]);
-
   const refresh = useCallback(async () => {
-    if (!user || !sessionToken) {
-      setSavedPlaces([]);
-      setRecentSearches([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
-      const data = await request("/api/users/me/places");
-      if (!Array.isArray(data?.savedPlaces) || !Array.isArray(data?.recentSearches)) {
-        throw new Error("The server returned an invalid places response.");
+      await AsyncStorage.multiRemove([
+        "campusnav-auth-user",
+        "campusnav-auth-session",
+        "campusnav-guest-session",
+      ]);
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const data: unknown = stored ? JSON.parse(stored) : EMPTY_PLACES;
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("savedPlaces" in data) ||
+        !Array.isArray(data.savedPlaces) ||
+        !("recentSearches" in data) ||
+        !Array.isArray(data.recentSearches)
+      ) {
+        throw new Error("Saved places on this device have an invalid format.");
       }
-      setSavedPlaces(data.savedPlaces.filter((slug: unknown): slug is string => typeof slug === "string"));
-      setRecentSearches(data.recentSearches.filter((slug: unknown): slug is string => typeof slug === "string"));
+      const loaded = {
+        savedPlaces: [...new Set(data.savedPlaces.filter((slug): slug is string => typeof slug === "string"))],
+        recentSearches: [...new Set(data.recentSearches.filter((slug): slug is string => typeof slug === "string"))].slice(0, RECENT_SEARCH_LIMIT),
+      };
+      placesRef.current = loaded;
+      setPlaces(loaded);
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     } finally {
       setLoading(false);
     }
-  }, [request, sessionToken, user]);
+  }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const toggleSavedPlace = useCallback(async (buildingSlug: string) => {
-    if (!user || !sessionToken) return;
+  const save = useCallback(async (next: PlacesData) => {
+    placesRef.current = next;
+    setPlaces(next);
     setError(null);
     try {
-      const isSaved = savedPlaces.includes(buildingSlug);
-      await request(
-        isSaved
-          ? `/api/users/me/saved-places/${encodeURIComponent(buildingSlug)}`
-          : "/api/users/me/saved-places",
-        isSaved
-          ? { method: "DELETE" }
-          : { method: "POST", body: JSON.stringify({ buildingSlug }) },
-      );
-      await refresh();
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (reason: unknown) {
       setError(errorMessage(reason));
     }
-  }, [refresh, request, savedPlaces, sessionToken, user]);
+  }, []);
+
+  const toggleSavedPlace = useCallback(async (buildingSlug: string) => {
+    const savedPlaces = placesRef.current.savedPlaces;
+    const next = {
+      ...placesRef.current,
+      savedPlaces: savedPlaces.includes(buildingSlug)
+        ? savedPlaces.filter((slug) => slug !== buildingSlug)
+        : [...savedPlaces, buildingSlug],
+    };
+    await save(next);
+  }, [save]);
 
   const recordRecentSearch = useCallback(async (buildingSlug: string) => {
-    if (!user || !sessionToken) return;
-    setError(null);
-    try {
-      await request("/api/users/me/recent-searches", {
-        method: "POST",
-        body: JSON.stringify({ buildingSlug }),
-      });
-      await refresh();
-    } catch (reason: unknown) {
-      setError(errorMessage(reason));
-    }
-  }, [refresh, request, sessionToken, user]);
+    const recentSearches = placesRef.current.recentSearches.filter((slug) => slug !== buildingSlug);
+    await save({
+      ...placesRef.current,
+      recentSearches: [buildingSlug, ...recentSearches].slice(0, RECENT_SEARCH_LIMIT),
+    });
+  }, [save]);
 
   const value = useMemo(() => ({
-    savedPlaces,
-    recentSearches,
+    savedPlaces: places.savedPlaces,
+    recentSearches: places.recentSearches,
     loading,
     error,
     refresh,
     toggleSavedPlace,
     recordRecentSearch,
-  }), [savedPlaces, recentSearches, loading, error, refresh, toggleSavedPlace, recordRecentSearch]);
+  }), [places, loading, error, refresh, toggleSavedPlace, recordRecentSearch]);
 
   return <UserPlacesContext.Provider value={value}>{children}</UserPlacesContext.Provider>;
 }

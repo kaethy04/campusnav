@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { requireSuperAdmin } from "../middlewares/admin-auth.js";
-import { optionalUser } from "../middlewares/user-auth.js";
 import { supabase } from "../lib/supabase.js";
 
 const router = Router();
@@ -16,9 +15,6 @@ type AppUpdateRow = {
 
 type FeedbackRow = {
   id: number;
-  user_email: string | null;
-  username: string | null;
-  user_name: string | null;
   message: string;
   status: "new" | "resolved";
   created_at: string;
@@ -38,9 +34,6 @@ function toAppUpdate(row: AppUpdateRow) {
 function toFeedback(row: FeedbackRow) {
   return {
     id: row.id,
-    userEmail: row.user_email,
-    username: row.username,
-    userName: row.user_name,
     message: row.message,
     status: row.status,
     createdAt: row.created_at,
@@ -152,7 +145,7 @@ router.delete("/admin/app-updates/:id", requireSuperAdmin, async (req, res) => {
   }
 });
 
-router.post("/feedback", optionalUser, async (req, res) => {
+router.post("/feedback", async (req, res) => {
   const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   if (message.length < 5 || message.length > 4000) {
     res.status(400).json({ error: "Feedback must be between 5 and 4000 characters." });
@@ -160,29 +153,8 @@ router.post("/feedback", optionalUser, async (req, res) => {
   }
 
   try {
-    const userEmail = req.userEmail ?? null;
-    let username: string | null = null;
-    let userName: string | null = null;
-    if (userEmail) {
-      const { data: user, error: userError } = await supabase
-        .from("users")
-        .select("username, name")
-        .eq("email", userEmail)
-        .maybeSingle();
-      if (userError) throw userError;
-      if (!user) {
-        res.status(401).json({ error: "Your account session is no longer valid. Please sign in again." });
-        return;
-      }
-      username = user.username;
-      userName = user.name;
-    }
-
     const { data, error } = await supabase.from("app_feedback").insert({
       message,
-      user_email: userEmail,
-      username,
-      user_name: userName,
     }).select("id, created_at").single();
     if (error) throw error;
     res.status(201).json({ id: data.id, createdAt: data.created_at });
@@ -195,7 +167,7 @@ router.post("/feedback", optionalUser, async (req, res) => {
 router.get("/admin/feedback", requireSuperAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase.from("app_feedback")
-      .select("id, user_email, username, user_name, message, status, created_at")
+      .select("id, message, status, created_at")
       .order("created_at", { ascending: false });
     if (error) throw error;
     res.json((data as FeedbackRow[]).map(toFeedback));
@@ -215,7 +187,7 @@ router.patch("/admin/feedback/:id", requireSuperAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase.from("app_feedback").update({ status })
       .eq("id", id)
-      .select("id, user_email, username, user_name, message, status, created_at")
+      .select("id, message, status, created_at")
       .maybeSingle();
     if (error) throw error;
     if (!data) {

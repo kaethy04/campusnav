@@ -22,7 +22,6 @@ import {
   getCategoryLabel,
 } from "@/constants/buildings";
 import { useColors } from "@/hooks/useColors";
-import { useAuth } from "@/hooks/useAuth";
 import { useBuildings } from "@/hooks/useBuildings";
 import { useUserPlaces } from "@/hooks/useUserPlaces";
 
@@ -30,7 +29,6 @@ export default function BuildingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
   const places = useUserPlaces();
   const { buildings } = useBuildings();
   const [viewingPhotoIndex, setViewingPhotoIndex] = React.useState<number | null>(null);
@@ -50,8 +48,8 @@ export default function BuildingDetailScreen() {
   const building = buildings.find((b) => b.id === (id ?? ""));
 
   React.useEffect(() => {
-    if (building && user) void places.recordRecentSearch(building.id);
-  }, [building?.id, places.recordRecentSearch, user]);
+    if (building) void places.recordRecentSearch(building.id);
+  }, [building?.id, places.recordRecentSearch]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -135,22 +133,20 @@ export default function BuildingDetailScreen() {
           >
             <Feather name="arrow-left" size={20} color="#fff" />
           </Pressable>
-          {user && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={places.savedPlaces.includes(building.id) ? `Remove ${building.name} from saved places` : `Save ${building.name}`}
-              accessibilityState={{ selected: places.savedPlaces.includes(building.id) }}
-              onPress={() => void places.toggleSavedPlace(building.id)}
-              style={[styles.heroFavorite, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-              hitSlop={8}
-            >
-              <FontAwesome
-                name={places.savedPlaces.includes(building.id) ? "star" : "star-o"}
-                size={18}
-                color="#fff"
-              />
-            </Pressable>
-          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={places.savedPlaces.includes(building.id) ? `Remove ${building.name} from saved places` : `Save ${building.name}`}
+            accessibilityState={{ selected: places.savedPlaces.includes(building.id) }}
+            onPress={() => void places.toggleSavedPlace(building.id)}
+            style={[styles.heroFavorite, { backgroundColor: "rgba(255,255,255,0.2)" }]}
+            hitSlop={8}
+          >
+            <FontAwesome
+              name={places.savedPlaces.includes(building.id) ? "star" : "star-o"}
+              size={18}
+              color="#fff"
+            />
+          </Pressable>
         </View>
 
         <View style={styles.heroContent}>
@@ -190,7 +186,7 @@ export default function BuildingDetailScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {user && places.error && (
+        {places.error && (
           <Text style={[styles.placesError, { color: colors.destructive }]} accessibilityRole="alert">
             {places.error}
           </Text>

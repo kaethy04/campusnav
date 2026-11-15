@@ -4,9 +4,6 @@ import { Button } from "@/components/ui/button";
 
 type Feedback = {
   id: number;
-  userEmail: string | null;
-  username: string | null;
-  userName: string | null;
   message: string;
   status: "new" | "resolved";
   createdAt: string;
@@ -175,16 +172,13 @@ export default function FeedbackPage() {
                   checked={isSelected}
                   onChange={() => toggleOne(item.id)}
                   disabled={deleting}
-                  aria-label={`Select feedback from ${item.userName || item.username || "CampusNav user"}`}
+                  aria-label="Select feedback"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium">{item.userName || (item.username ? `@${item.username}` : "CampusNav user")}</p>
+                    <p className="font-medium">CampusNav user</p>
                     {item.status === "new" && <span className="text-xs font-semibold text-primary">New</span>}
                   </div>
-                  {(item.userEmail || item.username) && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{item.userEmail || `@${item.username}`}</p>
-                  )}
                   <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{item.message}</p>
                   <time className="mt-2 block text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</time>
                 </div>

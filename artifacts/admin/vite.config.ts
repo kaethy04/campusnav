@@ -39,12 +39,11 @@ export default defineConfig(({ mode }) => {
       fs: {
         strict: true,
       },
-      // GI-ADD: Gi-forward ang tanang /api ug /api/ws HTTP/WebSocket requests ngadto sa backend server (port 8080)
+      // Forward API requests to the backend server (port 8080).
       proxy: {
         "/api": {
           target: "http://localhost:8080",
           changeOrigin: true,
-          ws: true,
         },
       },
     },

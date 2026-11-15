@@ -4,13 +4,11 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAuth } from "@/hooks/useAuth";
 import { useColors } from "@/hooks/useColors";
 import { getApiBaseUrl } from "@/utils/api";
 
 export default function FeedbackScreen() {
   const colors = useColors();
-  const { sessionToken, signOut } = useAuth();
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,14 +25,12 @@ export default function FeedbackScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
         },
         body: JSON.stringify({
           message: trimmedMessage,
         }),
       });
       const data = await response.json().catch(() => null);
-      if (response.status === 401 && sessionToken) await signOut();
       if (!response.ok) throw new Error(data?.error || "Could not send feedback.");
       setMessage("");
       setSent(true);

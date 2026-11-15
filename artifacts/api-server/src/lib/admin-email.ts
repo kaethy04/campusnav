@@ -17,48 +17,6 @@ function getTransporter() {
   });
 }
 
-export function isAdminEmailConfigured() {
-  return getEmailCredentials() !== null;
-}
-
-export async function sendUserPasswordResetCode(recipient: string, code: string) {
-  const credentials = getEmailCredentials();
-  const transporter = getTransporter();
-  if (!transporter || !credentials) return false;
-
-  try {
-    await transporter.sendMail({
-      from: credentials.user,
-      to: recipient,
-      subject: "CampusNav password reset code",
-      text: `Your CampusNav password reset code is ${code}. It expires in 10 minutes. If you did not request this, you can ignore this email.`,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, "Failed to send user password reset code");
-    return false;
-  }
-}
-
-export async function sendUserEmailVerificationCode(recipient: string, code: string) {
-  const credentials = getEmailCredentials();
-  const transporter = getTransporter();
-  if (!transporter || !credentials) return false;
-
-  try {
-    await transporter.sendMail({
-      from: credentials.user,
-      to: recipient,
-      subject: "Verify your CampusNav email",
-      text: `Your CampusNav email verification code is ${code}. It expires in 10 minutes. If you did not create this account, you can ignore this email.`,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, "Failed to send user email verification code");
-    return false;
-  }
-}
-
 export async function sendAdminNotification(subject: string, text: string, recipient: string) {
   const credentials = getEmailCredentials();
   const transporter = getTransporter();

@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
@@ -32,11 +32,9 @@ import {
   type FloorLevel,
 } from "@/constants/buildings";
 import { CTU_CAMPUSES, DEFAULT_CAMPUS, getCampusRegion, type CampusCategory, type CampusLocation } from "@/constants/campuses";
-import { useLocation } from "@/hooks/useLocation";
+import { useLocation, type LocationCoords } from "@/hooks/useLocation";
 import { useColors } from "@/hooks/useColors";
-import { useAuth } from "@/hooks/useAuth";
 import { useUserPlaces } from "@/hooks/useUserPlaces";
-import { useActiveUsers } from "@/hooks/useActiveUsers";
 import { useBuildings } from "@/hooks/useBuildings";
 import { getApiBaseUrl } from "@/utils/api";
 import { haversineDistance } from "@/utils/distance";
@@ -207,15 +205,14 @@ function WebCampusMap({
 
 export default function MapScreen() {
   const colors = useColors();
-  const { user } = useAuth();
   const places = useUserPlaces();
   const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
-  useActiveUsers(user?.username);
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedCampus, setSelectedCampus] = useState<CampusLocation>(DEFAULT_CAMPUS);
+  const [centerOnLocationWhenAvailable, setCenterOnLocationWhenAvailable] = useState(false);
   const [campusMenuOpen, setCampusMenuOpen] = useState(false);
   const [navTarget, setNavTarget] = useState<Building | null>(null);
   const [walkingRoute, setWalkingRoute] = useState<WalkingRoute | null>(null);
@@ -227,6 +224,17 @@ export default function MapScreen() {
   const [floorColors, setFloorColors] = useState<FloorColors>(DEFAULT_FLOOR_COLORS);
   const location = useLocation();
   const isWeb = Platform.OS === "web";
+  const centerMapOnLocation = useCallback((coords: LocationCoords) => {
+    mapRef.current?.animateToRegion(
+      {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        latitudeDelta: 0.002,
+        longitudeDelta: 0.002,
+      },
+      500,
+    );
+  }, []);
   const {
     buildings,
     loading: buildingsLoading,
@@ -270,6 +278,12 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
+    if (!centerOnLocationWhenAvailable || !location.coords) return;
+    centerMapOnLocation(location.coords);
+    setCenterOnLocationWhenAvailable(false);
+  }, [centerMapOnLocation, centerOnLocationWhenAvailable, location.coords]);
+
+  useEffect(() => {
     mapRef.current?.animateToRegion(getCampusRegion(selectedCampus), 500);
   }, [selectedCampus.id]);
 
@@ -285,6 +299,7 @@ export default function MapScreen() {
   const selectedFloorPlan = floorPlans.find((plan) => plan.campusName === selectedCampus.name && plan.floorLevel === currentFloor);
   const topPad = Platform.OS === "web" ? 40 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const floorLegendBottom = isWeb ? 92 : bottomPad + 58;
   const campusMenuTop = topPad + (isWeb ? 0 : 12) + 118;
   const campusMenuMaxHeight = Math.max(
     140,
@@ -396,18 +411,12 @@ export default function MapScreen() {
 
   const handleLocateMe = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (!isWeb && location.coords) {
-      mapRef.current?.animateToRegion(
-        {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.002,
-          longitudeDelta: 0.002,
-        },
-        500
-      );
+    if (location.coords) {
+      setCenterOnLocationWhenAvailable(false);
+      centerMapOnLocation(location.coords);
     } else {
-      location.requestLocation();
+      setCenterOnLocationWhenAvailable(true);
+      if (!location.loading) void location.requestLocation();
       if (!isWeb) {
         mapRef.current?.animateToRegion(getCampusRegion(selectedCampus), 500);
       }
@@ -468,7 +477,11 @@ export default function MapScreen() {
       <View
         style={[
           styles.floorButtonsContainer,
-          { top: isNavigating ? "40%" as any : "50%" as any },
+          {
+            top: isNavigating ? "40%" as any : "50%" as any,
+            backgroundColor: colors.card + "A8",
+            borderColor: colors.border,
+          },
         ]}
       >
           <Pressable
@@ -513,7 +526,7 @@ export default function MapScreen() {
         style={[
           styles.floorLegend,
           {
-            bottom: isWeb ? 92 : bottomPad + 58,
+            bottom: floorLegendBottom,
             right: Math.max(8, width * 0.25 - 78),
             backgroundColor: colors.card + "F0",
             borderColor: colors.border,
@@ -715,18 +728,6 @@ export default function MapScreen() {
         <View style={styles.headerRight}>
           {!isMobile ? (
             <>
-              {user?.username && (
-                <View style={[styles.usernameBadge, { backgroundColor: colors.primaryLight }]}>
-                  <Feather name="user" size={13} color={colors.primary} />
-                  <Text
-                    style={[styles.usernameText, { color: colors.primary }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    @{user.username}
-                  </Text>
-                </View>
-              )}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Refresh map"
@@ -925,38 +926,38 @@ export default function MapScreen() {
       )}
 
       {/* Map Controls */}
-      {!isWeb && (
-        <View
-          style={[
-            styles.controls,
+      <View
+        style={[
+          styles.controls,
+          {
+            bottom: bottomPad + (isNavigating ? 220 : selectedBuilding ? 200 : 104),
+          },
+        ]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Find my location"
+          onPress={handleLocateMe}
+          style={({ pressed }) => [
+            styles.controlBtn,
             {
-              bottom: bottomPad + (isNavigating ? 220 : selectedBuilding ? 200 : 80),
+              backgroundColor: pressed ? colors.secondary : colors.card,
+              borderColor: colors.border,
+              shadowColor: colors.shadow,
             },
           ]}
         >
-          <Pressable
-            onPress={handleLocateMe}
-            style={({ pressed }) => [
-              styles.controlBtn,
-              {
-                backgroundColor: pressed ? colors.secondary : colors.card,
-                borderColor: colors.border,
-                shadowColor: colors.shadow,
-              },
-            ]}
-          >
-            {location.loading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Feather
-                name="navigation"
-                size={20}
-                color={location.coords ? colors.primary : colors.mutedForeground}
-              />
-            )}
-          </Pressable>
-        </View>
-      )}
+          {location.loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Feather
+              name="navigation"
+              size={20}
+              color={location.coords ? colors.primary : colors.mutedForeground}
+            />
+          )}
+        </Pressable>
+      </View>
 
       {/* Building count badge */}
       {!selectedBuilding && !isNavigating && (
@@ -964,9 +965,10 @@ export default function MapScreen() {
           style={[
             styles.badge,
             {
-              bottom: bottomPad + 80,
+              bottom: floorLegendBottom,
               left: 16,
               backgroundColor: colors.mapOverlay,
+              borderColor: colors.border,
             },
           ]}
         >
@@ -985,7 +987,7 @@ export default function MapScreen() {
           onNavigate={handleNavigate}
           onDirections={handleDirections}
           isSaved={selectedBuilding ? places.savedPlaces.includes(selectedBuilding.id) : false}
-          onToggleSaved={user && selectedBuilding ? () => void places.toggleSavedPlace(selectedBuilding.id) : undefined}
+          onToggleSaved={selectedBuilding ? () => void places.toggleSavedPlace(selectedBuilding.id) : undefined}
           placesError={places.error}
         />
       )}
@@ -1167,20 +1169,6 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 1,
   },
-  usernameBadge: {
-    maxWidth: 140,
-    minHeight: 34,
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-  },
-  usernameText: {
-    flexShrink: 1,
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
   logoMark: {
     width: 34,
     height: 34,
@@ -1358,7 +1346,8 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderWidth: 1,
+    borderRadius: 10,
   },
   badgeText: {
     color: "#fff",
@@ -1435,9 +1424,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -62 }],
     padding: 3,
     borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.66)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.96)",
     shadowColor: "#17301F",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
