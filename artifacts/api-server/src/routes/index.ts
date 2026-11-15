@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router } from "express";
 import healthRouter from "./health.js";
 import buildingsRouter from "./buildings.js";
 import adminAuthRouter from "./admin-auth.js";
@@ -7,7 +7,7 @@ import campusFloorPlansRouter from "./campus-floor-plans.js";
 import appContentRouter from "./app-content.js";
 import adminChatRouter from "./admin-chat.js";
 
-const router: IRouter = Router();
+const router = Router();
 
 router.use(healthRouter);
 router.use(adminAuthRouter);
