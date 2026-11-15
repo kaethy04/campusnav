@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import type {} from "pino-http"; // Load req.log's IncomingMessage type augmentation.
 import { randomUUID } from "crypto";
 import multer from "multer";
 import { requireAdmin, requireSuperAdmin } from "../middlewares/admin-auth.js";
