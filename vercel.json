@@ -1,24 +1,14 @@
 {
-  "buildCommand": "pnpm --filter @workspace/api-server run vercel-build",
-  "builds": [
+  "buildCommand": "pnpm --filter ./artifacts/api-server run vercel-build && pnpm --filter ./artifacts/admin run build",
+  "outputDirectory": "artifacts/admin/dist",
+  "rewrites": [
     {
-      "src": "artifacts/admin/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "source": "/api/(.*)",
+      "destination": "/api/index.mjs"
     },
     {
-      "src": "artifacts/api-server/dist/vercel.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "artifacts/api-server/dist/vercel.mjs"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/admin/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
