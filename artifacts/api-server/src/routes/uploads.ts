@@ -32,9 +32,9 @@ interface UploadResponse {
 }
 
 function uploadHandler(folder: string): RequestHandler {
-  return async (rawReq, rawRes) => {
-    const req = rawReq as unknown as UploadRequest;
-    const res = rawRes as unknown as UploadResponse;
+  return async (rawReq: unknown, rawRes: unknown) => {
+    const req = rawReq as UploadRequest;
+    const res = rawRes as UploadResponse;
 
     if (!req.file) {
       res.status(400).json({ error: "No image file provided or invalid file type." });
