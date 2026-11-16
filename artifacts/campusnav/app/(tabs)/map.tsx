@@ -54,10 +54,10 @@ type CampusFloorPlan = {
 type FloorColors = Record<FloorLevel, string>;
 
 const DEFAULT_FLOOR_COLORS: FloorColors = {
-  Ground: "#22C55E",
-  "2F": "#EAB308",
-  "3F": "#3B82F6",
-  "4F": "#EF4444",
+  Ground: "#286f42",
+  "2F": "#e5b524",
+  "3F": "#1d5cc1",
+  "4F": "#d62e2e",
 };
 
 function getCampusFloorPlansApiUrl() {
@@ -546,7 +546,7 @@ export default function MapScreen() {
         style={styles.map}
         initialRegion={getCampusRegion(selectedCampus)}
         provider={PROVIDER_DEFAULT}
-        showsUserLocation={!!location.coords}
+        showsUserLocation={false}
         showsMyLocationButton={false}
         showsCompass={false}
         minZoomLevel={12}
@@ -575,6 +575,15 @@ export default function MapScreen() {
             description={`${selectedCampus.category} campus`}
             pinColor={colors.primary}
           />
+
+          {location.coords && (
+            <Marker
+              coordinate={location.coords}
+              title="Your location"
+              zIndex={10}
+              pinColor="#800000"
+            />
+          )}
 
           {/* Route line when navigating */}
           {isNavigating && walkingRoute && (

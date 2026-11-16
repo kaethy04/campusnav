@@ -1,19 +1,27 @@
 {
   "cli": {
-    "version": ">= 16.0.0"
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "preview": {
+      "cache": {
+        "disabled": false
+      },
       "env": {
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "710140723200-f1ekonpb9lqek41kk05lppne2itolf8s.apps.googleusercontent.com"
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_API_URL": "https://campusnav-ph.vercel.app"
       },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "cache": {
+        "disabled": false
+      },
       "env": {
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "710140723200-f1ekonpb9lqek41kk05lppne2itolf8s.apps.googleusercontent.com"
+        "EXPO_PUBLIC_API_URL": "https://campusnav-ph.vercel.app"
       },
       "android": {
         "buildType": "app-bundle"
