@@ -435,6 +435,9 @@ importers:
       babel-preset-expo:
         specifier: ~58.0.24
         version: 58.0.24(@babel/core@7.29.7(supports-color@8.1.1))(@babel/runtime@7.29.7)(expo@58.0.25)(react-refresh@0.18.0)(supports-color@8.1.1)
+      expo-haptics:
+        specifier: ~58.0.8
+        version: 58.0.8(expo@58.0.25)
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -505,9 +508,6 @@ importers:
       expo-glass-effect:
         specifier: ~58.0.5
         version: 58.0.5(expo@58.0.25)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
-      expo-haptics:
-        specifier: ~58.0.8
-        version: 58.0.8(expo@58.0.25)
       expo-image:
         specifier: ~58.0.18
         version: 58.0.18(expo@58.0.25)(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
