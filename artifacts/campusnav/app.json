@@ -31,6 +31,14 @@
       ],
       "expo-font",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": false
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/CampusNav.png",
