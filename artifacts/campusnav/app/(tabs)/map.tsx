@@ -557,6 +557,13 @@ export default function MapScreen() {
         style={styles.map}
         initialRegion={getCampusRegion(selectedCampus)}
         provider={PROVIDER_DEFAULT}
+        customMapStyle={[
+          {
+            featureType: "poi",
+            elementType: "all",
+            stylers: [{ visibility: "o" }],
+          },
+        ]}
         showsUserLocation={false}
         showsMyLocationButton={false}
         showsCompass={false}
@@ -1393,7 +1400,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   markerText: {
-    color: "#800000",
+    color: "#03163a",
     fontSize: 10,
     fontFamily: "Inter_700Bold",
   },
@@ -1409,8 +1416,6 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
@@ -1418,12 +1423,12 @@ const styles = StyleSheet.create({
   markerPinDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 5,
     backgroundColor: "#FFFFFF",
   },
   markerPinTail: {
     position: "absolute",
-    top: 17,
+    top: 25,
     width: 0,
     height: 0,
     borderLeftWidth: 6,
