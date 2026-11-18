@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -204,6 +204,10 @@ function WebCampusMap({
 }
 
 export default function MapScreen() {
+  const { buildingId, startNavigation } = useLocalSearchParams<{
+    buildingId?: string;
+    startNavigation?: string;
+  }>();
   const colors = useColors();
   const places = useUserPlaces();
   const { width, height } = useWindowDimensions();
@@ -284,6 +288,7 @@ export default function MapScreen() {
   }, [centerMapOnLocation, centerOnLocationWhenAvailable, location.coords]);
 
   useEffect(() => {
+    if (selectedBuilding || navTarget) return;
     mapRef.current?.animateToRegion(getCampusRegion(selectedCampus), 500);
   }, [selectedCampus.id]);
 
@@ -444,20 +449,26 @@ export default function MapScreen() {
 };
 
   const handleDirections = (building: Building) => {
-    void places.recordRecentSearch(building.id);
-    if (Platform.OS === "web") {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${building.latitude},${building.longitude}`,
-        "_blank"
-      );
-    } else {
-      const url =
-        Platform.OS === "ios"
-          ? `maps://?daddr=${building.latitude},${building.longitude}`
-          : `geo:${building.latitude},${building.longitude}?q=${encodeURIComponent(building.name)}`;
-      import("react-native").then(({ Linking }) => Linking.openURL(url));
-    }
+    handleNavigate(building);
   };
+
+  useEffect(() => {
+    if (!buildingId) return;
+    const building = buildings.find((item) => item.id === buildingId);
+    if (!building) return;
+
+    const campus = CTU_CAMPUSES.find((item) => item.name === building.campusName);
+    if (campus) setSelectedCampus(campus);
+
+    if (startNavigation === "true") {
+      handleNavigate(building);
+    } else {
+      void places.recordRecentSearch(building.id);
+      handleMarkerPress(building);
+    }
+
+    router.setParams({ buildingId: undefined, startNavigation: undefined });
+  }, [buildingId, startNavigation, buildings]);
 
   const isNavigating = navTarget !== null;
 

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
 import {
@@ -244,6 +245,12 @@ export default function SearchScreen() {
         renderItem={({ item }) => (
           <BuildingListItem
             building={item}
+            onPress={() =>
+              router.navigate({
+                pathname: "/(tabs)/map",
+                params: { buildingId: item.id },
+              })
+            }
             isSaved={places.savedPlaces.includes(item.id)}
             onToggleSaved={() => void places.toggleSavedPlace(item.id)}
           />

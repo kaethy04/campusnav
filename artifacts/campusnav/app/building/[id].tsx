@@ -6,7 +6,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   Image,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -99,18 +98,10 @@ export default function BuildingDetailScreen() {
 
   const handleDirections = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (Platform.OS === "web") {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${building.latitude},${building.longitude}&destination_place_id=${encodeURIComponent(building.name)}`,
-        "_blank"
-      );
-    } else {
-      const url =
-        Platform.OS === "ios"
-          ? `maps://?daddr=${building.latitude},${building.longitude}&q=${encodeURIComponent(building.name)}`
-          : `geo:${building.latitude},${building.longitude}?q=${encodeURIComponent(building.name)}`;
-      Linking.openURL(url);
-    }
+    router.replace({
+      pathname: "/(tabs)/map",
+      params: { buildingId: building.id, startNavigation: "true" },
+    });
   };
 
   return (
